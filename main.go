@@ -2,8 +2,11 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"net/http"
 
 	"github.com/BurntSushi/toml"
 	"golang.org/x/oauth2"
@@ -12,6 +15,39 @@ import (
 type Config struct {
 	ClientId string
 	Secret   string
+}
+
+type AuthCode struct {
+	Code  string
+	State string
+}
+
+func (authCode AuthCode) isValid() bool {
+	if authCode.State != "state" {
+		return false
+	}
+
+	if authCode.Code == "" {
+		return false
+	}
+
+	return true
+}
+
+func getAuthCode(channel chan AuthCode) http.HandlerFunc {
+	return http.HandlerFunc(func(writer http.ResponseWriter, req *http.Request) {
+		code := AuthCode{
+			Code:  req.FormValue("code"),
+			State: req.FormValue("state"),
+		}
+
+		channel <- code
+	})
+}
+
+func listen(port int, channel chan AuthCode) {
+	http.HandleFunc("/redirect", getAuthCode(channel))
+	http.ListenAndServe(":3001", nil)
 }
 
 func main() {
@@ -36,24 +72,37 @@ func main() {
 	ctx := context.Background()
 	url := config.AuthCodeURL("state", oauth2.AccessTypeOffline)
 
+	channel := make(chan AuthCode)
+	go listen(3001, channel)
+
 	fmt.Printf("Authorise your Google account by visiting: %v\n", url)
 
-	var code string
-	if _, err := fmt.Scan(&code); err != nil {
-		log.Fatal(err)
+	authCode := <-channel
+
+	if !authCode.isValid() {
+		log.Fatal("Invalid authorization code")
 	}
 
-	token, err := config.Exchange(ctx, code)
+	token, err := config.Exchange(ctx, authCode.Code)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	client := config.Client(ctx, token)
 
-	albums, err := client.Get("https://photoslibrary.googleapis.com/v1/albums")
+	resp, err := client.Get("https://photoslibrary.googleapis.com/v1/albums")
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	albums := make(map[string]interface{})
+	json.Unmarshal(body, &albums)
 
 	log.Println(albums)
 }
