@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"github.com/BurntSushi/toml"
+	"github.com/msp301/photo-pup/internal/photoslibrary"
 	"golang.org/x/oauth2"
 )
 
@@ -101,8 +102,11 @@ func main() {
 		log.Fatal(err)
 	}
 
-	albums := make(map[string]interface{})
-	json.Unmarshal(body, &albums)
+	albums := photoslibrary.AlbumsList{}
+	err = json.Unmarshal(body, &albums)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	log.Println(albums)
 }
