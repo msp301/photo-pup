@@ -71,12 +71,12 @@ func main() {
 	}
 
 	ctx := context.Background()
-	url := config.AuthCodeURL("state", oauth2.AccessTypeOffline)
+	authURL := config.AuthCodeURL("state", oauth2.AccessTypeOffline)
 
 	channel := make(chan AuthCode)
 	go listen(3001, channel)
 
-	fmt.Printf("Authorise your Google account by visiting: %v\n", url)
+	fmt.Printf("Authorise your Google account by visiting: %v\n", authURL)
 
 	authCode := <-channel
 
