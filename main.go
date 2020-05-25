@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 
@@ -96,14 +95,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	albums := photoslibrary.AlbumsList{}
-	err = json.Unmarshal(body, &albums)
+	err = json.NewDecoder(resp.Body).Decode(&albums)
 	if err != nil {
 		log.Fatal(err)
 	}
