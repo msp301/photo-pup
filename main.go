@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 
 	"github.com/BurntSushi/toml"
 	"github.com/msp301/photo-pup/internal/photoslibrary"
@@ -101,5 +102,20 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Println(albums)
+	for _, album := range albums.Albums {
+		resp, err := client.PostForm("https://photoslibrary.googleapis.com/v1/mediaItems:search", url.Values{"albumId": {album.ID}})
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		media := photoslibrary.MediaItemsList{}
+		err = json.NewDecoder(resp.Body).Decode(&media)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		for _, item := range media.MediaItems {
+			println(item.BaseURL + "=d")
+		}
+	}
 }
