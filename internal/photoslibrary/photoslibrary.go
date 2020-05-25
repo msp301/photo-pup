@@ -5,6 +5,11 @@ type AlbumsList struct {
 	NextPageToken string
 }
 
+type MediaItemsList struct {
+	MediaItems    []MediaItem
+	NextPageToken string
+}
+
 type Album struct {
 	ID                    string
 	Title                 string
@@ -14,6 +19,39 @@ type Album struct {
 	MediaItemsCount       string
 	CoverPhotoBaseURL     string
 	CoverPhotoMediaItemID string
+}
+
+type MediaItem struct {
+	ID            string
+	Description   string
+	ProductURL    string
+	BaseURL       string
+	MimeType      string
+	MediaMetadata MediaMetadata
+}
+
+type MediaMetadata struct {
+	CreationTime string
+	Width        string
+	Height       string
+	Photo        Photo
+	Video        Video
+}
+
+type Photo struct {
+	CameraMake      string
+	CameraModel     string
+	FocalLength     float32
+	ApertureFNumber float32
+	IsoEquivalent   int
+	ExposureTime    string
+}
+
+type Video struct {
+	CameraMake  string
+	CameraModel string
+	Fps         int
+	Status      string
 }
 
 type SharedAlbumOptions struct {
