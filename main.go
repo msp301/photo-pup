@@ -51,6 +51,25 @@ func listen(port int, channel chan AuthCode) {
 	http.ListenAndServe(":3001", nil)
 }
 
+func printMediaItemLinks(client *http.Client, albums []photoslibrary.Album) *[]photoslibrary.MediaItem {
+	for _, album := range albums {
+		resp, err := client.PostForm("https://photoslibrary.googleapis.com/v1/mediaItems:search", url.Values{"albumId": {album.ID}})
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		media := photoslibrary.MediaItemsList{}
+		err = json.NewDecoder(resp.Body).Decode(&media)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		for _, item := range media.MediaItems {
+			println(item.BaseURL + "=d")
+		}
+	}
+}
+
 func main() {
 	cfg := Config{}
 	_, err := toml.DecodeFile("config.toml", &cfg)
@@ -102,22 +121,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	for _, album := range albums.Albums {
-		resp, err := client.PostForm("https://photoslibrary.googleapis.com/v1/mediaItems:search", url.Values{"albumId": {album.ID}})
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		media := photoslibrary.MediaItemsList{}
-		err = json.NewDecoder(resp.Body).Decode(&media)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		for _, item := range media.MediaItems {
-			println(item.BaseURL + "=d")
-		}
-	}
+	printMediaItemLinks(client, albums.Albums)
 
 	resp, err = client.Get("https://photoslibrary.googleapis.com/v1/sharedAlbums")
 	if err != nil {
@@ -130,20 +134,5 @@ func main() {
 		log.Fatal(err)
 	}
 
-	for _, album := range sharedAlbums.SharedAlbums {
-		resp, err := client.PostForm("https://photoslibrary.googleapis.com/v1/mediaItems:search", url.Values{"albumId": {album.ID}})
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		media := photoslibrary.MediaItemsList{}
-		err = json.NewDecoder(resp.Body).Decode(&media)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		for _, item := range media.MediaItems {
-			println(item.BaseURL + "=d")
-		}
-	}
+	printMediaItemLinks(client, sharedAlbums.SharedAlbums)
 }
