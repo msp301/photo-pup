@@ -118,4 +118,32 @@ func main() {
 			println(item.BaseURL + "=d")
 		}
 	}
+
+	resp, err = client.Get("https://photoslibrary.googleapis.com/v1/sharedAlbums")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	sharedAlbums := photoslibrary.SharedAlbumsList{}
+	err = json.NewDecoder(resp.Body).Decode(&sharedAlbums)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, album := range sharedAlbums.SharedAlbums {
+		resp, err := client.PostForm("https://photoslibrary.googleapis.com/v1/mediaItems:search", url.Values{"albumId": {album.ID}})
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		media := photoslibrary.MediaItemsList{}
+		err = json.NewDecoder(resp.Body).Decode(&media)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		for _, item := range media.MediaItems {
+			println(item.BaseURL + "=d")
+		}
+	}
 }

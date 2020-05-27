@@ -5,6 +5,11 @@ type AlbumsList struct {
 	NextPageToken string
 }
 
+type SharedAlbumsList struct {
+	SharedAlbums  []Album
+	NextPageToken string
+}
+
 type MediaItemsList struct {
 	MediaItems    []MediaItem
 	NextPageToken string
