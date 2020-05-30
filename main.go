@@ -76,9 +76,28 @@ func download(client *http.Client, filePath string, url string) error {
 	return err
 }
 
-func fetchMediaItems(client *http.Client, albums []photoslibrary.Album) {
-	for _, album := range albums {
-		resp, err := client.PostForm("https://photoslibrary.googleapis.com/v1/mediaItems:search", url.Values{"albumId": {album.ID}})
+func saveMediaItems(client *http.Client, media photoslibrary.MediaItemsList, outDir string) {
+	for _, item := range media.MediaItems {
+		downloadURL := item.BaseURL + "=d"
+		outputFile := filepath.Join(outDir, item.Filename)
+
+		if _, err := os.Stat(outputFile); err == nil {
+			continue
+		}
+
+		err := download(client, outputFile, downloadURL)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+}
+
+func fetchAlbum(client *http.Client, albumID string, dir string) {
+	nextPage := true
+	query := url.Values{"albumId": {albumID}}
+
+	for ok := true; ok; ok = nextPage {
+		resp, err := client.PostForm("https://photoslibrary.googleapis.com/v1/mediaItems:search", query)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -89,6 +108,18 @@ func fetchMediaItems(client *http.Client, albums []photoslibrary.Album) {
 			log.Fatal(err)
 		}
 
+		saveMediaItems(client, media, dir)
+
+		if media.NextPageToken != "" {
+			query = url.Values{"albumId": {albumID}, "pageToken": {media.NextPageToken}}
+		} else {
+			nextPage = false
+		}
+	}
+}
+
+func fetchMediaItems(client *http.Client, albums []photoslibrary.Album) {
+	for _, album := range albums {
 		albumDir := clean(album.Title)
 
 		if albumDir != "" {
@@ -100,19 +131,7 @@ func fetchMediaItems(client *http.Client, albums []photoslibrary.Album) {
 			}
 		}
 
-		for _, item := range media.MediaItems {
-			downloadURL := item.BaseURL + "=d"
-			outputFile := filepath.Join(albumDir, item.Filename)
-
-			if _, err := os.Stat(outputFile); err == nil {
-				continue
-			}
-
-			err := download(client, outputFile, downloadURL)
-			if err != nil {
-				log.Fatal(err)
-			}
-		}
+		fetchAlbum(client, album.ID, albumDir)
 	}
 }
 
