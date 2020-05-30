@@ -56,7 +56,7 @@ type Photo struct {
 type Video struct {
 	CameraMake  string
 	CameraModel string
-	Fps         int
+	Fps         float32
 	Status      string
 }
 
