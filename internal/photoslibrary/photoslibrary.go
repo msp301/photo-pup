@@ -33,6 +33,7 @@ type MediaItem struct {
 	BaseURL       string
 	MimeType      string
 	MediaMetadata MediaMetadata
+	Filename      string
 }
 
 type MediaMetadata struct {

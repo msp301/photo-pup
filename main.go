@@ -4,9 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/BurntSushi/toml"
 	"github.com/msp301/photo-pup/internal/photoslibrary"
@@ -51,7 +55,28 @@ func listen(port int, channel chan AuthCode) {
 	http.ListenAndServe(":3001", nil)
 }
 
-func printMediaItemLinks(client *http.Client, albums []photoslibrary.Album) *[]photoslibrary.MediaItem {
+func clean(str string) string {
+	return strings.ReplaceAll(str, "/", "-")
+}
+
+func download(client *http.Client, filePath string, url string) error {
+	resp, err := client.Get(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	file, err := os.Create(filePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	_, err = io.Copy(file, resp.Body)
+	return err
+}
+
+func fetchMediaItems(client *http.Client, albums []photoslibrary.Album) {
 	for _, album := range albums {
 		resp, err := client.PostForm("https://photoslibrary.googleapis.com/v1/mediaItems:search", url.Values{"albumId": {album.ID}})
 		if err != nil {
@@ -64,8 +89,29 @@ func printMediaItemLinks(client *http.Client, albums []photoslibrary.Album) *[]p
 			log.Fatal(err)
 		}
 
+		albumDir := clean(album.Title)
+
+		if albumDir != "" {
+			if _, err := os.Stat(albumDir); os.IsNotExist(err) {
+				err := os.Mkdir(albumDir, os.ModeDir|0755)
+				if err != nil {
+					log.Fatal(err)
+				}
+			}
+		}
+
 		for _, item := range media.MediaItems {
-			println(item.BaseURL + "=d")
+			downloadURL := item.BaseURL + "=d"
+			outputFile := filepath.Join(albumDir, item.Filename)
+
+			if _, err := os.Stat(outputFile); err == nil {
+				continue
+			}
+
+			err := download(client, outputFile, downloadURL)
+			if err != nil {
+				log.Fatal(err)
+			}
 		}
 	}
 }
@@ -121,7 +167,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	printMediaItemLinks(client, albums.Albums)
+	fetchMediaItems(client, albums.Albums)
 
 	resp, err = client.Get("https://photoslibrary.googleapis.com/v1/sharedAlbums")
 	if err != nil {
@@ -134,5 +180,5 @@ func main() {
 		log.Fatal(err)
 	}
 
-	printMediaItemLinks(client, sharedAlbums.SharedAlbums)
+	fetchMediaItems(client, sharedAlbums.SharedAlbums)
 }
