@@ -81,6 +81,8 @@ func saveMediaItems(client *http.Client, media photoslibrary.MediaItemsList, out
 		downloadParam := "=d"
 		if item.MediaMetadata.Video.Status == "READY" {
 			downloadParam = "=dv"
+		} else if item.MediaMetadata.Video.Status != "" {
+			continue
 		}
 
 		downloadURL := item.BaseURL + downloadParam
