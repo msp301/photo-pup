@@ -78,7 +78,12 @@ func download(client *http.Client, filePath string, url string) error {
 
 func saveMediaItems(client *http.Client, media photoslibrary.MediaItemsList, outDir string) {
 	for _, item := range media.MediaItems {
-		downloadURL := item.BaseURL + "=d"
+		downloadParam := "=d"
+		if item.MediaMetadata.Video.Status == "READY" {
+			downloadParam = "=dv"
+		}
+
+		downloadURL := item.BaseURL + downloadParam
 		outputFile := filepath.Join(outDir, item.Filename)
 
 		if _, err := os.Stat(outputFile); err == nil {
